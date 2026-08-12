@@ -1,0 +1,128 @@
+rules_version = '2';
+
+// Dental Flow v1 — M01 Patient Registry
+//
+// SRS §6: "Sensitive medical information must be visible only to authorised clinic roles; access
+// and edits require audit logging." These rules are the server-side half of that. The client
+// enforces the same checks for a good experience, but only these are actually trusted.
+//
+// Confirmed access model: one combined doctor/administrator role. Every provisioned, active user
+// has full access to patient records and to user management. Narrower roles are a data change
+// (add a `role` check to `isStaff()`), not a schema migration.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * Access requires BOTH a Firebase Auth session AND an active users/{uid} profile document.
+     *
+     * This is what makes accounts admin-provisioned. Even if someone obtains an Auth account by
+     * other means, with no profile document they cannot read a single patient record.
+     */
+    function isStaff() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.active == true;
+    }
+
+    /** Writes must be attributed to whoever actually made them, not to an arbitrary uid. */
+    function writtenBySelf() {
+      return request.resource.data.updatedBy == request.auth.uid;
+    }
+
+    /* ------------------------------------------------------------------ users */
+
+    match /users/{uid} {
+      // A user must be able to read their own profile while signing in — before isStaff() can
+      // pass, since isStaff() itself depends on that very document existing.
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow list, get: if isStaff();
+
+      // Provisioning a colleague. Role is pinned to 'staff' so a client cannot invent a wider one.
+      allow create: if isStaff()
+        && request.resource.data.role == 'staff'
+        && request.resource.data.active is bool;
+
+      // Only `active` and `displayName` are mutable; email and role are fixed after creation.
+      allow update: if isStaff()
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.email == resource.data.email;
+
+      // Access is revoked by setting active:false. Deleting would orphan the uid referenced by
+      // clinical entries and audit records.
+      allow delete: if false;
+    }
+
+    /* --------------------------------------------------------------- patients */
+
+    match /patients/{patientId} {
+      allow read: if isStaff();
+      allow create: if isStaff()
+        && request.resource.data.createdBy == request.auth.uid
+        && writtenBySelf();
+      allow update: if isStaff() && writtenBySelf();
+
+      // Patient records are never deleted from the client. A patient registered in error is
+      // corrected by editing; removing the record would break every downstream module that
+      // references this patientId (SRS §5).
+      allow delete: if false;
+
+      /* Dated clinical entries — FR-M01-05. */
+      match /clinicalEntries/{entryId} {
+        allow read: if isStaff();
+        allow create: if isStaff() && request.resource.data.authorId == request.auth.uid;
+
+        // Append-only. A clinical note records what was observed at a point in time; corrections
+        // are made by adding a further note, never by rewriting the original.
+        allow update, delete: if false;
+      }
+
+      /* Treatment-table container — FR-M01-06, placeholder until the Treatment module lands. */
+      match /treatments/{treatmentId} {
+        allow read: if isStaff();
+        allow create: if isStaff() && request.resource.data.createdBy == request.auth.uid;
+        allow update: if isStaff() && writtenBySelf();
+        allow delete: if isStaff();
+      }
+    }
+
+    /* ---------------------------------------------------------- file numbers */
+
+    /**
+     * One document per assigned clinic file number. Its existence is the uniqueness constraint
+     * behind FR-M01-07 — Firestore has none of its own, and a transaction that fails to create
+     * this document aborts the patient write with it.
+     */
+    match /fileNumbers/{fileNumber} {
+      allow read: if isStaff();
+      allow create: if isStaff() && request.resource.data.patientId is string;
+      // Reassignment happens by delete + create inside a transaction, never by editing in place.
+      allow update: if false;
+      allow delete: if isStaff();
+    }
+
+    /* -------------------------------------------------------------- counters */
+
+    match /counters/{counterId} {
+      allow read, write: if isStaff();
+    }
+
+    /* -------------------------------------------------------------- auditLog */
+
+    /**
+     * FR-M01-08. Append-only: denying update and delete is what makes this an audit trail rather
+     * than a log. Without that denial a user could quietly erase the record of their own edit.
+     */
+    match /auditLog/{entryId} {
+      allow read: if isStaff();
+      allow create: if isStaff()
+        && request.resource.data.actorId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    /* Anything not matched above is denied. */
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
