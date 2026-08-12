@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { FirebaseError } from 'firebase/app'
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
@@ -14,6 +15,26 @@ import { AuthContext, type AuthState } from './authContext'
 const NO_PROFILE_MESSAGE =
   'This account is not registered for clinic access. Ask an administrator to add it.'
 const INACTIVE_MESSAGE = 'This account has been disabled. Contact an administrator.'
+const UNREACHABLE_MESSAGE =
+  'Cannot reach the patient database. Check your internet connection, and confirm Cloud Firestore is enabled on this Firebase project.'
+
+/**
+ * Whether a failed profile read means "no access" or "could not ask".
+ *
+ * Firestore reports an unreachable backend as `unavailable` — including when the project has no
+ * Firestore database at all, where the SDK falls back to an empty local cache and says the client
+ * is offline. Treating that as a missing profile sends people hunting for an account problem that
+ * does not exist, so connectivity failures are reported as themselves and the session is kept.
+ */
+function isBackendUnreachable(error: unknown): boolean {
+  if (!(error instanceof FirebaseError)) return false
+  return (
+    error.code === 'unavailable' ||
+    error.code === 'firestore/unavailable' ||
+    error.code === 'deadline-exceeded' ||
+    error.code === 'firestore/deadline-exceeded'
+  )
+}
 
 /**
  * Two-stage authentication.
@@ -54,7 +75,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(appUser)
       } catch (error) {
         console.error('Failed to load the clinic profile', error)
-        // A rules rejection lands here too, and means the same thing: this account has no access.
+
+        if (isBackendUnreachable(error)) {
+          // Not an access problem. Keep the Firebase session so a recovered connection resumes
+          // without a second sign-in, and say plainly that the database could not be reached.
+          setAccessError(UNREACHABLE_MESSAGE)
+          setFirebaseUser(null)
+          setProfile(null)
+          return
+        }
+
+        // Anything else — including a rules rejection — means this account has no access.
         setAccessError(NO_PROFILE_MESSAGE)
         setFirebaseUser(null)
         setProfile(null)

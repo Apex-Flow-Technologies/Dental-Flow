@@ -80,7 +80,20 @@ configuration**. The app shows a setup screen with this checklist until the file
 
 Firebase console → **Authentication → Sign-in method → Email/Password → Enable**.
 
-### 4. Deploy the security rules
+### 4. Create the Firestore database
+
+Firebase console → **Build → Firestore Database → Create database**.
+
+- **Location:** pick the region closest to the clinic — `asia-south1` (Mumbai) for Chennai. This is
+  **permanent**; moving a database later means exporting and re-importing into a new project.
+- **Mode:** choose **production mode** (deny all). The real rules are deployed in the next step.
+  Test mode would leave every patient record world-readable for 30 days.
+
+Creating the project does **not** create a database. If you skip this, sign-in succeeds but the app
+reports that it cannot reach the patient database — Firestore returns `unavailable` for a project
+with no database, which the SDK surfaces as "client is offline".
+
+### 5. Deploy the security rules
 
 ```bash
 npm install -g firebase-tools
@@ -97,7 +110,7 @@ firebase deploy --only firestore:rules,firestore:indexes
 Do this **before** entering real patient data. Firestore's default rules either deny everything or
 allow everything, and neither is what this app expects.
 
-### 5. Bootstrap the first user
+### 6. Bootstrap the first user
 
 Every account is created by an existing user — which leaves the first one to create by hand, once:
 
@@ -117,7 +130,7 @@ An Auth account **without** this document cannot sign in — that check is the w
 "admin-provisioned" model, and it is enforced in `firestore.rules` as well as in the app. Every
 account after this one is created from the in-app **Clinic users** screen.
 
-### 6. Run
+### 7. Run
 
 ```bash
 npm run dev
