@@ -87,10 +87,17 @@ export function AppShell() {
           Sign out
         </button>
 
-        <p className="mt-4 px-3 text-xs leading-relaxed text-white/40">
-          Built by{' '}
-          <span className="font-medium text-white/60">Apex Flow Technologies</span>
-        </p>
+        {/* The mark is navy, so it needs a light plate to read against the navy sidebar. */}
+        <div className="mt-4 flex items-center gap-2.5 px-3">
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-white p-1">
+            <img src="/favicon.png" alt="" className="size-full object-contain" />
+          </span>
+          <p className="text-xs leading-tight text-white/40">
+            Built by
+            <br />
+            <span className="font-medium text-white/60">Apex Flow Technologies</span>
+          </p>
+        </div>
       </div>
     </>
   )
