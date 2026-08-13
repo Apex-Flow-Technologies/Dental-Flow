@@ -81,6 +81,10 @@ export const patientFormSchema = z
     diabetic: flagSchema,
     otherIllness: flagSchema,
     medicineAllergy: flagSchema,
+
+    // Free text by design — the paper card records this as prose, and forcing a structure onto
+    // "RCT on 36 elsewhere, upper denture 2019" would lose more than it captured.
+    previousDentalHistory: z.string().trim().max(2000, 'Previous dental history is too long.'),
   })
   .superRefine((values, ctx) => {
     /* --- Age: DOB is authoritative, age typed only when DOB is unknown ------------------- */
@@ -198,6 +202,7 @@ export function emptyPatientForm(fileNumber = ''): PatientFormValues {
     diabetic: { ...blankFlag },
     otherIllness: { ...blankFlag },
     medicineAllergy: { ...blankFlag },
+    previousDentalHistory: '',
   }
 }
 
@@ -232,6 +237,7 @@ export function patientToForm(patient: Patient): PatientFormValues {
     diabetic: flag('diabetic'),
     otherIllness: flag('otherIllness'),
     medicineAllergy: flag('medicineAllergy'),
+    previousDentalHistory: patient.previousDentalHistory ?? '',
   }
 }
 
@@ -283,5 +289,6 @@ export function toPatientInput(values: PatientFormValues): PatientInput {
       otherIllness: flag('otherIllness'),
       medicineAllergy: flag('medicineAllergy'),
     },
+    previousDentalHistory: values.previousDentalHistory.trim(),
   }
 }

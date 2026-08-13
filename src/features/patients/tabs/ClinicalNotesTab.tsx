@@ -5,15 +5,19 @@ import { Card, EmptyState, ErrorNotice, InfoNotice, Spinner } from '@/components
 import { useActor } from '@/auth/useAuth'
 import { useToast } from '@/components/ui/toastContext'
 import { addClinicalEntry, listClinicalEntries } from '@/services/clinicalEntries'
-import { CLINICAL_ENTRY_LABELS, type ClinicalEntry, type ClinicalEntryType } from '@/types/models'
+import { CLINICAL_ENTRY_LABELS, type ClinicalEntry } from '@/types/models'
 import { formatDateTime } from '@/lib/format'
 
 /**
- * Previous dental history and clinical notes as dated entries attributed to the signed-in user
- * (FR-M01-05).
+ * Clinical notes as dated entries attributed to the signed-in user (FR-M01-05).
  *
  * Entries are appended, never edited — a note records what was observed at a point in time, so a
  * correction is a further note rather than a rewrite of the original.
+ *
+ * Previous dental history is deliberately *not* here. It is a single fact about the patient taken
+ * once at registration, so it lives on the patient record beside the medical screening; this tab is
+ * the running record of care given at this clinic. Entries created before that split still render
+ * with their original label.
  */
 export function ClinicalNotesTab({ patientId }: { patientId: string }) {
   const actor = useActor()
@@ -22,7 +26,6 @@ export function ClinicalNotesTab({ patientId }: { patientId: string }) {
   const [entries, setEntries] = useState<ClinicalEntry[] | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
 
-  const [type, setType] = useState<ClinicalEntryType>('clinicalNote')
   const [text, setText] = useState('')
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -51,9 +54,9 @@ export function ClinicalNotesTab({ patientId }: { patientId: string }) {
     setSaving(true)
     setSaveError(null)
     try {
-      await addClinicalEntry(patientId, type, text, actor)
+      await addClinicalEntry(patientId, 'clinicalNote', text, actor)
       setText('')
-      notify(`${CLINICAL_ENTRY_LABELS[type]} added.`)
+      notify('Clinical note added.')
       await load()
     } catch (error) {
       console.error('Failed to add clinical entry', error)
@@ -65,78 +68,50 @@ export function ClinicalNotesTab({ patientId }: { patientId: string }) {
 
   return (
     <div className="space-y-6">
-      <Card title="Add an entry">
+      <Card title="Add a clinical note">
         <div className="space-y-4">
           {saveError && <ErrorNotice>{saveError}</ErrorNotice>}
 
-          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Entry type">
-            {(Object.keys(CLINICAL_ENTRY_LABELS) as ClinicalEntryType[]).map((option) => (
-              <label
-                key={option}
-                className={`min-h-9 cursor-pointer rounded-lg border px-4 py-1.5 text-sm font-medium transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-clinic ${
-                  type === option
-                    ? 'border-clinic bg-clinic-100 text-navy'
-                    : 'border-line bg-white text-ink-muted hover:bg-pale'
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="entry-type"
-                  className="sr-only"
-                  checked={type === option}
-                  onChange={() => setType(option)}
-                />
-                {CLINICAL_ENTRY_LABELS[option]}
-              </label>
-            ))}
-          </div>
-
           <TextAreaField
-            label={CLINICAL_ENTRY_LABELS[type]}
+            label="Clinical note"
             rows={4}
             value={text}
             disabled={saving}
             onChange={(event) => setText(event.target.value)}
-            placeholder={
-              type === 'dentalHistory'
-                ? 'Previous treatments, extractions, appliances, complaints…'
-                : 'Examination findings, observations, advice given…'
-            }
+            placeholder="Examination findings, observations, advice given…"
             hint={`Saved against ${actor.displayName} with today’s date. Entries cannot be edited afterwards.`}
           />
 
           <div className="flex justify-end">
             <Button onClick={() => void handleAdd()} loading={saving}>
-              Add entry
+              Add note
             </Button>
           </div>
         </div>
       </Card>
 
-      <Card title="Entries" description="Newest first.">
+      <Card title="Notes" description="Newest first.">
         {loadError ? (
           <ErrorNotice>{loadError}</ErrorNotice>
         ) : entries === null ? (
           <Spinner label="Loading entries" />
         ) : entries.length === 0 ? (
           <EmptyState
-            title="No clinical entries yet"
-            description="Previous dental history and clinical notes recorded here appear in date order."
+            title="No clinical notes yet"
+            description="Examination findings and observations recorded here appear in date order. Previous dental history is on the Medical history tab."
           />
         ) : (
           <ol className="space-y-4">
             {entries.map((entry) => (
               <li key={entry.id} className="rounded-lg border border-line p-4">
                 <div className="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-                  <span
-                    className={`rounded-full px-2 py-0.5 font-medium ${
-                      entry.type === 'dentalHistory'
-                        ? 'bg-aqua-100 text-aqua-600'
-                        : 'bg-clinic-100 text-navy'
-                    }`}
-                  >
-                    {CLINICAL_ENTRY_LABELS[entry.type]}
-                  </span>
+                  {/* Only surfaced for entries predating the move of dental history onto the
+                      patient record; every new note is a clinical note. */}
+                  {entry.type === 'dentalHistory' && (
+                    <span className="rounded-full bg-aqua-100 px-2 py-0.5 font-medium text-aqua-600">
+                      {CLINICAL_ENTRY_LABELS.dentalHistory}
+                    </span>
+                  )}
                   <span className="text-ink-muted">{formatDateTime(entry.createdAt)}</span>
                   <span className="text-ink-muted">· {entry.authorName}</span>
                 </div>

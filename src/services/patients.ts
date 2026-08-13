@@ -292,8 +292,8 @@ export async function updatePatient(
   })
 
   const changes = diffPatient(before, data)
-  const demographic = changes.filter((change) => !change.field.startsWith('medicalHistory.'))
-  const medical = changes.filter((change) => change.field.startsWith('medicalHistory.'))
+  const demographic = changes.filter((change) => !isMedicalField(change.field))
+  const medical = changes.filter((change) => isMedicalField(change.field))
 
   // Split so the medical-history tab's history is not buried inside demographic edits.
   await Promise.all([
@@ -321,6 +321,16 @@ export async function updatePatient(
 }
 
 /* -------------------------------------------------------------------- diff */
+
+/**
+ * Whether a changed field belongs to the medical history rather than the demographics.
+ *
+ * Previous dental history counts as medical: it is edited from the medical-history tab, so burying
+ * it in a demographic audit entry would hide it from the reader looking for exactly that change.
+ */
+function isMedicalField(field: string): boolean {
+  return field.startsWith('medicalHistory.') || field === 'previousDentalHistory'
+}
 
 const FIELD_LABELS: Record<string, string> = {
   fileNumber: 'File number',
@@ -399,6 +409,14 @@ export function diffPatient(before: Patient, after: ReturnType<typeof derived>):
     const field = `guardian.${part}`
     push(changes, field, FIELD_LABELS[field], before.guardian?.[part], after.guardian?.[part])
   }
+
+  push(
+    changes,
+    'previousDentalHistory',
+    'Previous dental history',
+    before.previousDentalHistory,
+    after.previousDentalHistory,
+  )
 
   for (const key of MEDICAL_FLAG_KEYS) {
     const beforeFlag = before.medicalHistory?.[key]

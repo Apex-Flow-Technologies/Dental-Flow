@@ -115,6 +115,10 @@ export function LoginPage() {
         <p className="mt-6 text-center text-xs text-white/60">
           Accounts are created by a clinic administrator. There is no public sign-up.
         </p>
+
+        <p className="mt-8 text-center text-xs text-white/40">
+          Built by <span className="font-medium text-white/60">Apex Flow Technologies</span>
+        </p>
       </div>
     </main>
   )

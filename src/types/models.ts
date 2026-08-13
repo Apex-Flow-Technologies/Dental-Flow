@@ -129,14 +129,27 @@ export interface Patient extends Audited {
   occupation: string | null
   branch: Branch
   medicalHistory: MedicalHistory
+  /**
+   * Previous dental history, as written on the registration card.
+   *
+   * Captured with the medical screening rather than as a dated clinical entry: on the paper card it
+   * is one field filled in once at registration describing what happened *before* this clinic, not
+   * a running log of visits here. Ongoing observations belong in `ClinicalEntry`.
+   *
+   * Optional in practice — patients registered before this field existed will not have it.
+   */
+  previousDentalHistory?: string
 }
 
 /** The writable shape of a patient — everything except the server-managed fields. */
 export type PatientInput = Omit<Patient, keyof Audited | 'id' | 'nameLower' | 'fileNumberSeq'>
 
 /**
- * A dated clinical entry (FR-M01-05). Covers previous dental history and clinical notes now;
- * future clinical modules are expected to reuse this collection rather than invent their own.
+ * A dated clinical entry (FR-M01-05) — observations recorded during care at this clinic.
+ * Future clinical modules are expected to reuse this collection rather than invent their own.
+ *
+ * `dentalHistory` is retained only so entries created before previous dental history moved onto the
+ * patient record still render. Nothing creates new ones; new entries are always `clinicalNote`.
  */
 export const CLINICAL_ENTRY_TYPES = ['dentalHistory', 'clinicalNote'] as const
 export type ClinicalEntryType = (typeof CLINICAL_ENTRY_TYPES)[number]

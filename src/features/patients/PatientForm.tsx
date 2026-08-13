@@ -1,7 +1,7 @@
 import { Controller, useForm, type SubmitHandler } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/Button'
-import { ReadOnlyField, SelectField, TextField } from '@/components/ui/Field'
+import { ReadOnlyField, SelectField, TextAreaField, TextField } from '@/components/ui/Field'
 import { YesNoField } from '@/components/ui/YesNoField'
 import { ErrorNotice, FormSection, InfoNotice } from '@/components/ui/primitives'
 import {
@@ -279,6 +279,18 @@ export function PatientForm({
             />
           ))}
         </div>
+
+        {/* Sits with the medical screening, as on the paper card — it is history taken at
+            registration, not an observation from a visit here. */}
+        <TextAreaField
+          label="Previous dental history"
+          className="mt-4"
+          rows={3}
+          error={errorFor('previousDentalHistory')}
+          hint="Treatments, extractions, dentures or appliances from before this clinic. Leave blank if none."
+          placeholder="e.g. RCT on 36 elsewhere in 2023, upper partial denture, extraction of 18"
+          {...register('previousDentalHistory')}
+        />
       </FormSection>
 
       <div className="flex flex-wrap justify-end gap-3 border-t border-line pt-6">

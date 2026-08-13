@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Badge, Card, ErrorNotice, InfoNotice } from '@/components/ui/primitives'
+import { TextAreaField } from '@/components/ui/Field'
 import { YesNoField } from '@/components/ui/YesNoField'
 import { useActor } from '@/auth/useAuth'
 import { useToast } from '@/components/ui/toastContext'
@@ -33,11 +34,13 @@ export function MedicalHistoryTab({ patient, onSaved }: MedicalHistoryTabProps) 
 
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState<MedicalHistory>(patient.medicalHistory)
+  const [dentalHistory, setDentalHistory] = useState(patient.previousDentalHistory ?? '')
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
   function startEditing() {
     setDraft(patient.medicalHistory)
+    setDentalHistory(patient.previousDentalHistory ?? '')
     setError(null)
     setEditing(true)
   }
@@ -58,7 +61,11 @@ export function MedicalHistoryTab({ patient, onSaved }: MedicalHistoryTabProps) 
       // Reuse the demographics conversion so both paths write an identically shaped document,
       // then overlay just the medical answers.
       const input = toPatientInput(patientToForm(patient))
-      const updated = await updatePatient(patient, { ...input, medicalHistory: draft }, actor)
+      const updated = await updatePatient(
+        patient,
+        { ...input, medicalHistory: draft, previousDentalHistory: dentalHistory.trim() },
+        actor,
+      )
       onSaved(updated)
       setEditing(false)
       notify('Medical history updated.')
@@ -102,6 +109,16 @@ export function MedicalHistoryTab({ patient, onSaved }: MedicalHistoryTabProps) 
             ))}
           </div>
 
+          <TextAreaField
+            label="Previous dental history"
+            rows={3}
+            disabled={saving}
+            value={dentalHistory}
+            onChange={(event) => setDentalHistory(event.target.value)}
+            hint="Treatments, extractions, dentures or appliances from before this clinic."
+            placeholder="e.g. RCT on 36 elsewhere in 2023, upper partial denture, extraction of 18"
+          />
+
           <div className="flex flex-wrap justify-end gap-3 border-t border-line pt-4">
             <Button variant="secondary" onClick={() => setEditing(false)} disabled={saving}>
               Cancel
@@ -116,38 +133,60 @@ export function MedicalHistoryTab({ patient, onSaved }: MedicalHistoryTabProps) 
   }
 
   const positives = MEDICAL_FLAG_KEYS.filter((key) => patient.medicalHistory?.[key]?.status)
+  const dental = (patient.previousDentalHistory ?? '').trim()
 
   return (
-    <Card
-      title="Medical history"
-      description="Screening answers recorded at registration and updated since."
-      action={
-        <Button variant="secondary" size="sm" onClick={startEditing}>
-          Edit
-        </Button>
-      }
-    >
-      <div className="space-y-4">
-        {positives.length > 0 ? (
-          <div className="flex flex-wrap gap-2 rounded-lg border border-warn/30 bg-warn-100 p-3">
-            <span className="text-sm font-medium text-warn">Flagged:</span>
-            {positives.map((key) => (
-              <Badge key={key} tone="warn">
-                {MEDICAL_FLAG_LABELS[key]}
-              </Badge>
-            ))}
-          </div>
-        ) : (
-          <InfoNotice>No medical conditions flagged at screening.</InfoNotice>
-        )}
+    <div className="space-y-6">
+      <Card
+        title="Medical history"
+        description="Screening answers recorded at registration and updated since."
+        action={
+          <Button variant="secondary" size="sm" onClick={startEditing}>
+            Edit
+          </Button>
+        }
+      >
+        <div className="space-y-4">
+          {positives.length > 0 ? (
+            <div className="flex flex-wrap gap-2 rounded-lg border border-warn/30 bg-warn-100 p-3">
+              <span className="text-sm font-medium text-warn">Flagged:</span>
+              {positives.map((key) => (
+                <Badge key={key} tone="warn">
+                  {MEDICAL_FLAG_LABELS[key]}
+                </Badge>
+              ))}
+            </div>
+          ) : (
+            <InfoNotice>No medical conditions flagged at screening.</InfoNotice>
+          )}
 
-        <ul className="divide-y divide-line rounded-lg border border-line">
-          {MEDICAL_FLAG_KEYS.map((key) => (
-            <MedicalRow key={key} flagKey={key} history={patient.medicalHistory} />
-          ))}
-        </ul>
-      </div>
-    </Card>
+          <ul className="divide-y divide-line rounded-lg border border-line">
+            {MEDICAL_FLAG_KEYS.map((key) => (
+              <MedicalRow key={key} flagKey={key} history={patient.medicalHistory} />
+            ))}
+          </ul>
+        </div>
+      </Card>
+
+      {/* Directly below the medical history, mirroring the registration card's layout. */}
+      <Card
+        title="Previous dental history"
+        description="Treatment received before coming to this clinic."
+        action={
+          <Button variant="secondary" size="sm" onClick={startEditing}>
+            Edit
+          </Button>
+        }
+      >
+        {dental === '' ? (
+          <p className="text-sm text-ink-muted">
+            No previous dental history recorded at registration.
+          </p>
+        ) : (
+          <p className="text-sm whitespace-pre-wrap text-ink">{dental}</p>
+        )}
+      </Card>
+    </div>
   )
 }
 

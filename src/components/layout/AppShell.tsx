@@ -86,6 +86,11 @@ export function AppShell() {
           <SignOutIcon className="size-5" />
           Sign out
         </button>
+
+        <p className="mt-4 px-3 text-xs leading-relaxed text-white/40">
+          Built by{' '}
+          <span className="font-medium text-white/60">Apex Flow Technologies</span>
+        </p>
       </div>
     </>
   )
