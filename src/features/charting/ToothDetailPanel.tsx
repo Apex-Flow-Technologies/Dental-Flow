@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react'
 import type { FindingContext, ToothFinding, ToothStatus, ToothSurface } from '@/types/models'
 import { Button } from '@/components/ui/Button'
-import { TextAreaField } from '@/components/ui/Field'
+import { DictatedTextArea } from '@/components/ui/DictatedTextArea'
 import { ErrorNotice } from '@/components/ui/primitives'
 import {
   isSurfaceScoped,
+  NOTATION_LABELS,
   parseFdi,
   STATUS_META,
   STATUS_ORDER,
+  toothLabel,
   toothName,
+  type Notation,
 } from './toothNotation'
 import { ToothSurfacePicker } from './ToothSurfacePicker'
 import { statusVar, type ToothVisual } from './toothVisual'
@@ -18,6 +21,8 @@ interface ToothDetailPanelProps {
   fdi: string | null
   visual: ToothVisual
   context: FindingContext
+  /** Must match the chart's notation — FDI 24 and Universal 24 are different teeth. */
+  notation: Notation
   /** Existing findings on this tooth, in the active context. */
   existing: ToothFinding[]
   saving: boolean
@@ -39,6 +44,7 @@ export function ToothDetailPanel({
   fdi,
   visual,
   context,
+  notation,
   existing,
   saving,
   error,
@@ -83,11 +89,14 @@ export function ToothDetailPanel({
   return (
     <div className="flex flex-col">
       <header className="flex items-start gap-3 border-b border-line px-5 py-4">
-        <span className="text-2xl leading-none font-semibold text-clinic tabular-nums">{fdi}</span>
+        <span className="text-2xl leading-none font-semibold text-clinic tabular-nums">
+          {toothLabel(fdi, notation)}
+        </span>
         <div className="min-w-0">
           <p className="font-medium text-navy">{toothName(fdi)}</p>
           <p className="mt-0.5 text-xs text-ink-muted">
-            Quadrant {tooth.quadrant} · {tooth.dentition} · FDI {fdi}
+            Quadrant {tooth.quadrant} · {tooth.dentition} ·{' '}
+            {notation === 'fdi' ? `FDI ${fdi}` : `${NOTATION_LABELS[notation]} · FDI ${fdi}`}
           </p>
         </div>
       </header>
@@ -147,12 +156,12 @@ export function ToothDetailPanel({
         </section>
 
         <section>
-          <TextAreaField
+          <DictatedTextArea
             label="Notes"
             rows={3}
             value={notes}
             disabled={saving}
-            onChange={(event) => setNotes(event.target.value)}
+            onChange={setNotes}
             placeholder="Clinical note for this tooth…"
           />
         </section>

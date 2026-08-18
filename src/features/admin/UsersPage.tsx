@@ -17,6 +17,7 @@ import { useToast } from '@/components/ui/toastContext'
 import { createClinicUser, listUsers, setUserActive } from '@/services/users'
 import type { AppUser } from '@/types/models'
 import { formatDate } from '@/lib/format'
+import { FeeSettingsCard } from './FeeSettingsCard'
 
 function describeCreateError(error: unknown): string {
   if (error instanceof FirebaseError) {
@@ -120,8 +121,8 @@ export function UsersPage() {
   return (
     <>
       <PageHeader
-        title="Clinic users"
-        subtitle="Accounts that can sign in to Dental Flow. There is no public sign-up."
+        title="Clinic settings"
+        subtitle="Accounts that can sign in, and the pricing the clinic works to."
         action={<Button onClick={() => setInviting(true)}>Add user</Button>}
       />
 
@@ -193,6 +194,10 @@ export function UsersPage() {
           </div>
         )}
       </Card>
+
+      <div className="mt-6">
+        <FeeSettingsCard />
+      </div>
 
       <div className="mt-6">
         <InfoNotice>

@@ -1,11 +1,13 @@
 import type { ToothSurface } from '@/types/models'
 import {
   cellsForArch,
+  toothLabel,
   toothName,
   type Arch,
   type ArchCell,
   type ChartDentition,
   type MixedMap,
+  type Notation,
 } from './toothNotation'
 import { AnatomicalTooth, SurfaceBox } from './ToothGlyphs'
 import { EMPTY_VISUAL, type ToothVisual } from './toothVisual'
@@ -13,6 +15,8 @@ import { EMPTY_VISUAL, type ToothVisual } from './toothVisual'
 interface ToothChart2DProps {
   dentition: ChartDentition
   mixedMap: MixedMap
+  /** Display notation only — findings are always stored against the FDI number. */
+  notation: Notation
   visuals: Record<string, ToothVisual>
   selected: string | null
   onSelectTooth: (fdi: string) => void
@@ -33,6 +37,7 @@ interface ToothChart2DProps {
 export function ToothChart2D({
   dentition,
   mixedMap,
+  notation,
   visuals,
   selected,
   onSelectTooth,
@@ -51,6 +56,7 @@ export function ToothChart2D({
           arch="upper"
           dentition={dentition}
           mixedMap={mixedMap}
+          notation={notation}
           visuals={visuals}
           selected={selected}
           onSelectTooth={onSelectTooth}
@@ -67,6 +73,7 @@ export function ToothChart2D({
           arch="lower"
           dentition={dentition}
           mixedMap={mixedMap}
+          notation={notation}
           visuals={visuals}
           selected={selected}
           onSelectTooth={onSelectTooth}
@@ -85,6 +92,7 @@ function ArchRow({
   arch,
   dentition,
   mixedMap,
+  notation,
   visuals,
   selected,
   onSelectTooth,
@@ -96,7 +104,7 @@ function ArchRow({
   const numbers = (
     <div className="flex items-end justify-center gap-0.5">
       {cells.map((cell, index) => (
-        <ToothNumber key={index} cell={cell} selected={selected} />
+        <ToothNumber key={index} cell={cell} selected={selected} notation={notation} />
       ))}
     </div>
   )
@@ -111,7 +119,7 @@ function ArchRow({
               onClick={() => onSelectTooth(cell.fdi)}
               aria-label={`${toothName(cell.fdi)}, tooth ${cell.fdi}`}
               aria-pressed={selected === cell.fdi}
-              title={toothName(cell.fdi)}
+              title={`${toothName(cell.fdi)} — FDI ${cell.fdi}`}
               className="flex w-full cursor-pointer justify-center rounded transition-colors hover:bg-pale"
             >
               <AnatomicalTooth fdi={cell.fdi} visual={visuals[cell.fdi] ?? EMPTY_VISUAL} />
@@ -163,10 +171,18 @@ function cellWidth(cell: ArchCell): string {
   return cell.kind === 'midline' ? 'w-3 shrink-0' : 'w-10 shrink-0'
 }
 
-function ToothNumber({ cell, selected }: { cell: ArchCell; selected: string | null }) {
+function ToothNumber({
+  cell,
+  selected,
+  notation,
+}: {
+  cell: ArchCell
+  selected: string | null
+  notation: Notation
+}) {
   if (cell.kind === 'midline') return <div className="w-3 shrink-0" />
 
-  const label = cell.kind === 'tooth' ? cell.fdi : cell.key
+  const label = cell.kind === 'tooth' ? toothLabel(cell.fdi, notation) : cell.key
   const active = cell.kind === 'tooth' && selected === cell.fdi
 
   return (

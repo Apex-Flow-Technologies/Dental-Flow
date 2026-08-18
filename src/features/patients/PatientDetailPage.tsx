@@ -94,9 +94,17 @@ export function PatientDetailPage() {
 
       <header className="mb-6 rounded-xl border border-line bg-white p-5">
         <div className="flex flex-wrap items-start gap-4">
-          <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-navy text-lg font-semibold text-white">
-            {initials(patient.fullName)}
-          </span>
+          {patient.photoDataUrl ? (
+            <img
+              src={patient.photoDataUrl}
+              alt={`Photo of ${patient.fullName}`}
+              className="size-14 shrink-0 rounded-2xl border border-line object-cover"
+            />
+          ) : (
+            <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-navy text-lg font-semibold text-white">
+              {initials(patient.fullName)}
+            </span>
+          )}
 
           <div className="min-w-0 flex-1">
             <h1 className="text-xl font-semibold text-navy">{patient.fullName}</h1>

@@ -10,7 +10,7 @@ import { FINDING_CONTEXT_LABELS } from '@/types/models'
 import { useActor } from '@/auth/useAuth'
 import { useToast } from '@/components/ui/toastContext'
 import { Card, ErrorNotice, Spinner } from '@/components/ui/primitives'
-import { TextAreaField } from '@/components/ui/Field'
+import { DictatedTextArea } from '@/components/ui/DictatedTextArea'
 import { Button } from '@/components/ui/Button'
 import {
   addToothFinding,
@@ -24,10 +24,13 @@ import { SEX_LABELS } from '@/types/models'
 import {
   allTeeth,
   isSurfaceScoped,
+  NOTATIONS,
+  NOTATION_LABELS,
   STATUS_META,
   surfacesFor,
   type ChartDentition,
   type MixedMap,
+  type Notation,
 } from './toothNotation'
 import { ChartDefs } from './ToothGlyphs'
 import { ToothChart2D } from './ToothChart2D'
@@ -64,6 +67,8 @@ export function ToothChartPanel({ patient }: { patient: Patient }) {
   const [mixedMap] = useState<MixedMap>({})
   const [context, setContext] = useState<FindingContext>('finding')
   const [view, setView] = useState<'2d' | '3d'>('2d')
+  // Display only. Storage stays FDI, which is the notation that encodes quadrant and position.
+  const [notation, setNotation] = useState<Notation>('fdi')
   const [selected, setSelected] = useState<string | null>(null)
 
   const load = useCallback(async () => {
@@ -176,9 +181,17 @@ export function ToothChartPanel({ patient }: { patient: Patient }) {
       <div className="rounded-xl border border-line bg-white p-5">
         <div className="flex flex-wrap items-center gap-x-8 gap-y-4">
           <div className="flex items-center gap-3">
-            <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-navy text-sm font-semibold text-white">
-              {initials(patient.fullName)}
-            </span>
+            {patient.photoDataUrl ? (
+              <img
+                src={patient.photoDataUrl}
+                alt=""
+                className="size-11 shrink-0 rounded-full border border-line object-cover"
+              />
+            ) : (
+              <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-navy text-sm font-semibold text-white">
+                {initials(patient.fullName)}
+              </span>
+            )}
             <div className="min-w-0">
               <p className="font-semibold text-navy">{patient.fullName}</p>
               <p className="font-mono text-xs text-ink-muted">
@@ -210,6 +223,16 @@ export function ToothChartPanel({ patient }: { patient: Patient }) {
             value={context}
             onChange={(value) => setContext(value as FindingContext)}
           />
+
+          <ToggleGroup
+            label="Numbering"
+            options={NOTATIONS.map((value) => ({
+              value,
+              label: value === 'fdi' ? 'FDI' : value === 'universal' ? 'Universal' : 'Palmer',
+            }))}
+            value={notation}
+            onChange={(value) => setNotation(value as Notation)}
+          />
         </div>
       </div>
 
@@ -236,7 +259,7 @@ export function ToothChartPanel({ patient }: { patient: Patient }) {
             </div>
             <p className="text-sm text-ink-muted">
               {view === '2d'
-                ? 'FDI (ISO 3950) · click a tooth, or a surface directly'
+                ? `${NOTATION_LABELS[notation]} · click a tooth, or a surface directly`
                 : 'Case presentation view · drag to orbit, or use a preset'}
             </p>
           </div>
@@ -245,6 +268,7 @@ export function ToothChartPanel({ patient }: { patient: Patient }) {
             <ToothChart2D
               dentition={dentition}
               mixedMap={mixedMap}
+              notation={notation}
               visuals={visuals}
               selected={selected}
               onSelectTooth={setSelected}
@@ -269,6 +293,7 @@ export function ToothChartPanel({ patient }: { patient: Patient }) {
             fdi={selected}
             visual={selected ? (visuals[selected] ?? EMPTY_VISUAL) : EMPTY_VISUAL}
             context={context}
+            notation={notation}
             existing={existing}
             saving={saving}
             error={saveError}
@@ -378,12 +403,12 @@ function AdditionalNotes({
       <div className="space-y-4">
         {error && <ErrorNotice>{error}</ErrorNotice>}
 
-        <TextAreaField
+        <DictatedTextArea
           label={context === 'plan' ? 'Treatment plan notes' : 'Clinical findings notes'}
           rows={4}
           value={text}
           disabled={saving}
-          onChange={(event) => setText(event.target.value)}
+          onChange={setText}
           placeholder={
             context === 'plan'
               ? 'Sequence of treatment, sittings, materials, what was discussed with the patient…'

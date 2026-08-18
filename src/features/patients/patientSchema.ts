@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { Timestamp } from 'firebase/firestore'
 import {
   BRANCHES,
+  PATIENT_CATEGORIES,
   SEXES,
   type MedicalFlagKey,
   type Patient,
@@ -42,6 +43,14 @@ export const patientFormSchema = z
     ageAtRegistration: z.string(),
     sex: z.enum(SEXES, { message: 'Select the patient’s sex.' }),
     referral: z.string().trim().max(120, 'Referral is too long.'),
+    category: z.enum(PATIENT_CATEGORIES, { message: 'Select a patient category.' }),
+    consultationFee: z
+      .string()
+      .trim()
+      .refine((value) => value === '' || (Number.isFinite(Number(value)) && Number(value) >= 0), {
+        message: 'Enter a fee amount, or leave it blank.',
+      }),
+    photoDataUrl: z.string().nullable(),
 
     phone: indianPhone('Phone'),
     altPhone: z
@@ -187,6 +196,9 @@ export function emptyPatientForm(fileNumber = ''): PatientFormValues {
     ageAtRegistration: '',
     sex: 'male',
     referral: '',
+    category: 'new',
+    consultationFee: '',
+    photoDataUrl: null,
     phone: '',
     altPhone: '',
     email: '',
@@ -222,6 +234,12 @@ export function patientToForm(patient: Patient): PatientFormValues {
     ageAtRegistration: patient.ageAtRegistration === null ? '' : String(patient.ageAtRegistration),
     sex: patient.sex,
     referral: patient.referral ?? '',
+    category: patient.category ?? 'new',
+    consultationFee:
+      patient.consultationFee === null || patient.consultationFee === undefined
+        ? ''
+        : String(patient.consultationFee),
+    photoDataUrl: patient.photoDataUrl ?? null,
     phone: patient.phone,
     altPhone: patient.altPhone ?? '',
     email: patient.email ?? '',
@@ -266,6 +284,10 @@ export function toPatientInput(values: PatientFormValues): PatientInput {
     ageAtRegistration,
     sex: values.sex,
     referral: values.referral.trim() || null,
+    category: values.category,
+    consultationFee:
+      values.consultationFee.trim() === '' ? null : Number(values.consultationFee.trim()),
+    photoDataUrl: values.photoDataUrl,
     phone: values.phone,
     altPhone: values.altPhone.trim() || null,
     email: values.email.trim() || null,

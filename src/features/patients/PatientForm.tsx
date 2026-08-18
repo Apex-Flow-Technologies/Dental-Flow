@@ -1,12 +1,16 @@
 import { Controller, useForm, type SubmitHandler } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Button } from '@/components/ui/Button'
-import { ReadOnlyField, SelectField, TextAreaField, TextField } from '@/components/ui/Field'
+import { ReadOnlyField, SelectField, TextField } from '@/components/ui/Field'
+import { DictatedTextArea } from '@/components/ui/DictatedTextArea'
+import { PhotoField } from '@/components/ui/PhotoField'
 import { YesNoField } from '@/components/ui/YesNoField'
 import { ErrorNotice, FormSection, InfoNotice } from '@/components/ui/primitives'
 import {
   BRANCHES,
   BRANCH_LABELS,
+  PATIENT_CATEGORIES,
+  PATIENT_CATEGORY_LABELS,
   MEDICAL_FLAG_DETAIL_LABELS,
   MEDICAL_FLAG_KEYS,
   MEDICAL_FLAG_LABELS,
@@ -30,6 +34,9 @@ interface PatientFormProps {
   /** Server-side failure surfaced against a field — a taken file number, most importantly. */
   fieldError?: { field: keyof PatientFormValues; message: string } | null
   formError?: string | null
+  /** Suggested consultation fee for the selected category, from the clinic fee schedule. */
+  suggestedFeeAmount?: number | null
+  currency?: string
 }
 
 const grid = 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3'
@@ -49,6 +56,8 @@ export function PatientForm({
   onCancel,
   fieldError,
   formError,
+  suggestedFeeAmount = null,
+  currency = '₹',
 }: PatientFormProps) {
   const {
     register,
@@ -172,9 +181,51 @@ export function PatientForm({
           <TextField label="Occupation" error={errorFor('occupation')} {...register('occupation')} />
           <TextField
             label="Referred by"
-            hint="Optional."
+            hint="Optional — who sent the patient."
             error={errorFor('referral')}
             {...register('referral')}
+          />
+
+          <SelectField
+            label="Patient category"
+            required
+            error={errorFor('category')}
+            hint="Drives which consultation fee is suggested."
+            {...register('category')}
+          >
+            {PATIENT_CATEGORIES.map((category) => (
+              <option key={category} value={category}>
+                {PATIENT_CATEGORY_LABELS[category]}
+              </option>
+            ))}
+          </SelectField>
+
+          <TextField
+            label="Consultation fee"
+            inputMode="decimal"
+            className="no-spinner"
+            placeholder={suggestedFeeAmount === null ? '' : String(suggestedFeeAmount)}
+            hint={
+              suggestedFeeAmount === null
+                ? 'Optional. Overridable at billing.'
+                : `Suggested ${currency}${suggestedFeeAmount} for this category. Leave blank to use it.`
+            }
+            error={errorFor('consultationFee')}
+            {...register('consultationFee')}
+          />
+
+          <Controller
+            name="photoDataUrl"
+            control={control}
+            render={({ field }) => (
+              <div className="sm:col-span-2 lg:col-span-3">
+                <PhotoField
+                  value={field.value}
+                  onChange={field.onChange}
+                  name={watch('fullName')}
+                />
+              </div>
+            )}
           />
         </div>
       </FormSection>
@@ -282,14 +333,21 @@ export function PatientForm({
 
         {/* Sits with the medical screening, as on the paper card — it is history taken at
             registration, not an observation from a visit here. */}
-        <TextAreaField
-          label="Previous dental history"
-          className="mt-4"
-          rows={3}
-          error={errorFor('previousDentalHistory')}
-          hint="Treatments, extractions, dentures or appliances from before this clinic. Leave blank if none."
-          placeholder="e.g. RCT on 36 elsewhere in 2023, upper partial denture, extraction of 18"
-          {...register('previousDentalHistory')}
+        <Controller
+          name="previousDentalHistory"
+          control={control}
+          render={({ field }) => (
+            <DictatedTextArea
+              label="Previous dental history"
+              className="mt-4"
+              rows={3}
+              value={field.value}
+              onChange={field.onChange}
+              error={errorFor('previousDentalHistory')}
+              hint="Treatments, extractions, dentures or appliances from before this clinic. Leave blank if none."
+              placeholder="e.g. RCT on 36 elsewhere in 2023, upper partial denture, extraction of 18"
+            />
+          )}
         />
       </FormSection>
 

@@ -11,6 +11,8 @@ import {
   surfacesFor,
   toothName,
   toothType,
+  toPalmer,
+  toUniversal,
   type ArchCell,
 } from './toothNotation'
 
@@ -217,5 +219,67 @@ describe('toothName', () => {
     expect(toothName('24')).toBe('Upper left first premolar')
     expect(toothName('36')).toBe('Lower left first molar')
     expect(toothName('53')).toBe('Upper right canine (primary)')
+  })
+})
+
+describe('Universal numbering (the clinic chart in the brief)', () => {
+  it('runs 1-16 across the upper arch, left to right on screen', () => {
+    // 1 is the patient's upper RIGHT third molar, which sits on the viewer's left.
+    expect(fdis(cellsForArch('upper', 'permanent')).map(toUniversal)).toEqual([
+      '1', '2', '3', '4', '5', '6', '7', '8',
+      '9', '10', '11', '12', '13', '14', '15', '16',
+    ])
+  })
+
+  it('runs 32 down to 17 across the lower arch, left to right on screen', () => {
+    // The count loops: 17 is the lower LEFT third molar, so screen order descends.
+    expect(fdis(cellsForArch('lower', 'permanent')).map(toUniversal)).toEqual([
+      '32', '31', '30', '29', '28', '27', '26', '25',
+      '24', '23', '22', '21', '20', '19', '18', '17',
+    ])
+  })
+
+  it('pins the four corner teeth', () => {
+    expect(toUniversal('18')).toBe('1')
+    expect(toUniversal('28')).toBe('16')
+    expect(toUniversal('38')).toBe('17')
+    expect(toUniversal('48')).toBe('32')
+  })
+
+  it('letters the primary dentition A-T in the same loop', () => {
+    expect(toUniversal('55')).toBe('A')
+    expect(toUniversal('51')).toBe('E')
+    expect(toUniversal('61')).toBe('F')
+    expect(toUniversal('65')).toBe('J')
+    expect(toUniversal('71')).toBe('K')
+    expect(toUniversal('75')).toBe('O')
+    expect(toUniversal('85')).toBe('P')
+    expect(toUniversal('81')).toBe('T')
+  })
+
+  it('assigns every permanent tooth a distinct number 1-32', () => {
+    const numbers = allTeeth('permanent').map(toUniversal).map(Number)
+    expect(new Set(numbers).size).toBe(32)
+    expect(Math.min(...numbers)).toBe(1)
+    expect(Math.max(...numbers)).toBe(32)
+  })
+
+  it('assigns every primary tooth a distinct letter A-T', () => {
+    const letters = allTeeth('primary').map(toUniversal)
+    expect(new Set(letters).size).toBe(20)
+  })
+})
+
+describe('Palmer notation', () => {
+  it('brackets the position number by quadrant', () => {
+    expect(toPalmer('18')).toBe('8┘')
+    expect(toPalmer('28')).toBe('└8')
+    expect(toPalmer('38')).toBe('┌8')
+    expect(toPalmer('48')).toBe('8┐')
+  })
+
+  it('letters primary teeth A-E', () => {
+    expect(toPalmer('53')).toBe('C┘')
+    expect(toPalmer('75')).toBe('┌E')
   })
 })

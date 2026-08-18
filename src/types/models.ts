@@ -130,6 +130,18 @@ export interface Patient extends Audited {
   branch: Branch
   medicalHistory: MedicalHistory
   /**
+   * Square JPEG data URL, downscaled client-side to roughly 20-35 KB.
+   *
+   * Stored inline rather than in Cloud Storage because Storage requires the Blaze plan. A
+   * Firestore document is capped at 1 MiB, which a thumbnail fits inside comfortably; radiographs
+   * do not, and are handled separately.
+   */
+  photoDataUrl?: string | null
+  /** Drives which consultation fee is suggested. Referral itself stays in `referral`. */
+  category?: PatientCategory
+  /** Consultation fee agreed for this patient, in rupees. Overridable per visit at billing. */
+  consultationFee?: number | null
+  /**
    * Previous dental history, as written on the registration card.
    *
    * Captured with the medical screening rather than as a dated clinical entry: on the paper card it
@@ -143,6 +155,24 @@ export interface Patient extends Audited {
 
 /** The writable shape of a patient — everything except the server-managed fields. */
 export type PatientInput = Omit<Patient, keyof Audited | 'id' | 'nameLower' | 'fileNumberSeq'>
+
+/**
+ * How the clinic classifies this patient for pricing.
+ *
+ * Kept separate from `referral` (who sent them): a patient referred by another dentist may still
+ * be a first visit, and a regular may have been referred years ago. Conflating the two would make
+ * the fee suggestion wrong in both directions.
+ */
+export const PATIENT_CATEGORIES = ['new', 'known', 'regular', 'referred', 'camp'] as const
+export type PatientCategory = (typeof PATIENT_CATEGORIES)[number]
+
+export const PATIENT_CATEGORY_LABELS: Record<PatientCategory, string> = {
+  new: 'New patient',
+  known: 'Known patient',
+  regular: 'Regular patient',
+  referred: 'Referred',
+  camp: 'Camp / outreach',
+}
 
 /**
  * A dated clinical entry (FR-M01-05) — observations recorded during care at this clinic.
@@ -324,3 +354,102 @@ export interface ToothFinding extends Audited {
 
 /** The writable shape of a finding — everything except the server-managed fields. */
 export type ToothFindingInput = Omit<ToothFinding, keyof Audited | 'id' | 'patientId'>
+
+
+/* ==========================================================================
+   Vitals — blood pressure and blood sugar readings
+   ========================================================================== */
+
+/**
+ * How a blood sugar reading was taken. The number is meaningless without it: 140 mg/dL is normal
+ * two hours after a meal and diabetic if fasting.
+ */
+export const SUGAR_KINDS = ['fasting', 'postPrandial', 'random', 'hba1c'] as const
+export type SugarKind = (typeof SUGAR_KINDS)[number]
+
+export const SUGAR_KIND_LABELS: Record<SugarKind, string> = {
+  fasting: 'Fasting (FBS)',
+  postPrandial: 'Post-prandial (PPBS)',
+  random: 'Random (RBS)',
+  hba1c: 'HbA1c',
+}
+
+export const SUGAR_KIND_UNITS: Record<SugarKind, string> = {
+  fasting: 'mg/dL',
+  postPrandial: 'mg/dL',
+  random: 'mg/dL',
+  hba1c: '%',
+}
+
+/**
+ * One set of readings taken at a visit.
+ *
+ * Every field is optional because a visit may record only blood pressure, or only sugar. Storing
+ * these as dated readings rather than as a single current value on the patient is what makes a
+ * trend visible — which is the clinically useful part before a procedure.
+ */
+export interface VitalsReading extends Audited {
+  id: string
+  patientId: string
+  takenAt: Timestamp
+  systolic: number | null
+  diastolic: number | null
+  pulse: number | null
+  sugarValue: number | null
+  sugarKind: SugarKind | null
+  notes: string
+  /** Denormalised so the readings table renders without a lookup per row. */
+  recordedByName: string
+}
+
+export type VitalsInput = Omit<VitalsReading, keyof Audited | 'id' | 'patientId'>
+
+/* ==========================================================================
+   Radiograph advice and attachments
+   ========================================================================== */
+
+export const RADIOGRAPH_TYPES = ['opg', 'lateralCeph', 'cbct', 'iopa', 'occlusal'] as const
+export type RadiographType = (typeof RADIOGRAPH_TYPES)[number]
+
+export const RADIOGRAPH_LABELS: Record<RadiographType, string> = {
+  opg: 'OPG (orthopantomogram)',
+  lateralCeph: 'Lateral cephalogram',
+  cbct: 'CBCT',
+  iopa: 'IOPA',
+  occlusal: 'Occlusal view',
+}
+
+/** An imaging investigation advised at a visit, and whether it has come back. */
+export interface RadiographAdvice extends Audited {
+  id: string
+  patientId: string
+  types: RadiographType[]
+  /** Free text for region, e.g. "36 region", "full arch". */
+  region: string
+  reason: string
+  advisedOn: Timestamp
+  received: boolean
+  advisedByName: string
+}
+
+export type RadiographAdviceInput = Omit<RadiographAdvice, keyof Audited | 'id' | 'patientId'>
+
+/**
+ * Metadata for an uploaded radiograph or document.
+ *
+ * The bytes live in Cloud Storage; this record is the index. Kept as a separate collection so the
+ * list renders without downloading anything, and so a missing Storage bucket degrades to "no
+ * files" rather than breaking the patient record.
+ */
+export interface PatientAttachment extends Audited {
+  id: string
+  patientId: string
+  fileName: string
+  contentType: string
+  sizeBytes: number
+  /** Storage path, not a download URL — URLs expire and paths do not. */
+  storagePath: string
+  kind: RadiographType | 'other'
+  notes: string
+  uploadedByName: string
+}

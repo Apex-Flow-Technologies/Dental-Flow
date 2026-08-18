@@ -10,6 +10,12 @@ import {
   FileNumberTakenError,
 } from '@/services/patients'
 import type { Patient } from '@/types/models'
+import {
+  getClinicSettings,
+  suggestedFee,
+  DEFAULT_SETTINGS,
+  type ClinicSettings,
+} from '@/services/clinicSettings'
 import { PatientForm } from './PatientForm'
 import { DuplicateWarningDialog } from './DuplicateWarningDialog'
 import {
@@ -26,6 +32,7 @@ export function PatientCreatePage() {
 
   const [defaults, setDefaults] = useState<PatientFormValues | null>(null)
   const [suggested, setSuggested] = useState('')
+  const [settings, setSettings] = useState<ClinicSettings>(DEFAULT_SETTINGS)
   const [fieldError, setFieldError] = useState<{
     field: keyof PatientFormValues
     message: string
@@ -50,6 +57,19 @@ export function PatientCreatePage() {
         if (cancelled) return
         setDefaults(emptyPatientForm())
       })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    getClinicSettings()
+      .then((loaded) => {
+        if (!cancelled) setSettings(loaded)
+      })
+      // A missing fee schedule must not block a registration; the field simply stays blank.
+      .catch(() => undefined)
     return () => {
       cancelled = true
     }
@@ -137,6 +157,8 @@ export function PatientCreatePage() {
             onCancel={() => navigate('/patients')}
             fieldError={fieldError}
             formError={formError}
+            suggestedFeeAmount={suggestedFee(settings, 'new')?.amount ?? null}
+            currency={settings.currency}
           />
         )}
       </Card>

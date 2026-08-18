@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/Button'
-import { TextAreaField } from '@/components/ui/Field'
+import { DictatedTextArea } from '@/components/ui/DictatedTextArea'
+import { RadiographPanel } from './RadiographPanel'
 import { Card, EmptyState, ErrorNotice, InfoNotice, Spinner } from '@/components/ui/primitives'
 import { useActor } from '@/auth/useAuth'
 import { useToast } from '@/components/ui/toastContext'
@@ -72,12 +73,12 @@ export function ClinicalNotesTab({ patientId }: { patientId: string }) {
         <div className="space-y-4">
           {saveError && <ErrorNotice>{saveError}</ErrorNotice>}
 
-          <TextAreaField
+          <DictatedTextArea
             label="Clinical note"
             rows={4}
             value={text}
             disabled={saving}
-            onChange={(event) => setText(event.target.value)}
+            onChange={setText}
             placeholder="Examination findings, observations, advice given…"
             hint={`Saved against ${actor.displayName} with today’s date. Entries cannot be edited afterwards.`}
           />
@@ -121,6 +122,8 @@ export function ClinicalNotesTab({ patientId }: { patientId: string }) {
           </ol>
         )}
       </Card>
+
+      <RadiographPanel patientId={patientId} />
 
       <InfoNotice>
         Diagnosis sheets, treatment plans and consent records are specified as separate modules and

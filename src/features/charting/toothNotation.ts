@@ -301,3 +301,89 @@ export const statusColor = (status: ToothStatus): string => `var(${STATUS_META[s
 
 export const isSurfaceScoped = (status: ToothStatus): boolean =>
   STATUS_META[status].scope === 'surface'
+
+/* ------------------------------------------------- alternative notations */
+
+/**
+ * Storage is always FDI. These convert for *display only*.
+ *
+ * The clinic's own charts use Universal numbering (1-32), while FDI is the ISO standard and the
+ * one that encodes quadrant and position arithmetically — which is why every calculation in this
+ * module works on FDI and only the label changes. Converting at the storage layer instead would
+ * mean re-deriving quadrant and position from a number that does not carry them.
+ */
+export const NOTATIONS = ['fdi', 'universal', 'palmer'] as const
+export type Notation = (typeof NOTATIONS)[number]
+
+export const NOTATION_LABELS: Record<Notation, string> = {
+  fdi: 'FDI (ISO 3950)',
+  universal: 'Universal (1–32)',
+  palmer: 'Palmer',
+}
+
+const PRIMARY_LETTERS = 'ABCDEFGHIJKLMNOPQRST'
+
+/**
+ * Universal numbering: permanent teeth 1-32, primary teeth A-T.
+ *
+ * 1 is the patient's upper right third molar; the count runs across the upper arch to 16 at the
+ * upper left third molar, drops to 17 at the *lower left* third molar, and returns to 32 at the
+ * lower right third molar. It is a single continuous loop, which is why each quadrant needs its
+ * own offset rather than one formula.
+ */
+export function toUniversal(fdi: string): string {
+  const { quadrant, position } = parseFdi(fdi)
+  switch (quadrant) {
+    case 1:
+      return String(9 - position)
+    case 2:
+      return String(8 + position)
+    case 3:
+      return String(25 - position)
+    case 4:
+      return String(24 + position)
+    // Primary quadrants follow the same loop, lettered A-T.
+    case 5:
+      return PRIMARY_LETTERS[5 - position]
+    case 6:
+      return PRIMARY_LETTERS[4 + position]
+    case 7:
+      return PRIMARY_LETTERS[9 + position]
+    default:
+      return PRIMARY_LETTERS[20 - position]
+  }
+}
+
+/**
+ * Palmer notation: the position number inside a bracket whose orientation gives the quadrant.
+ * Primary teeth use letters A-E in the same brackets.
+ */
+export function toPalmer(fdi: string): string {
+  const { quadrant, position } = parseFdi(fdi)
+  const symbol = position <= 5 && quadrant > 4 ? 'ABCDE'[position - 1] : String(position)
+  switch (quadrant) {
+    case 1:
+    case 5:
+      return `${symbol}\u2518` // upper right
+    case 2:
+    case 6:
+      return `\u2514${symbol}` // upper left
+    case 4:
+    case 8:
+      return `${symbol}\u2510` // lower right
+    default:
+      return `\u250c${symbol}` // lower left
+  }
+}
+
+/** The label to print on a tooth in the chosen notation. */
+export function toothLabel(fdi: string, notation: Notation): string {
+  switch (notation) {
+    case 'universal':
+      return toUniversal(fdi)
+    case 'palmer':
+      return toPalmer(fdi)
+    default:
+      return fdi
+  }
+}

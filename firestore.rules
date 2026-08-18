@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// Dental Flow v1 — M01 Patient Registry
+// Dental Flow — M01 Patient Registry + M02 Charting
 //
 // SRS §6: "Sensitive medical information must be visible only to authorised clinic roles; access
 // and edits require audit logging." These rules are the server-side half of that. The client
@@ -98,6 +98,33 @@ service cloud.firestore {
         allow update: if isStaff() && writtenBySelf();
         allow delete: if isStaff();
       }
+
+      /** Blood pressure and blood sugar readings, dated per visit. */
+      match /vitals/{readingId} {
+        allow read: if isStaff();
+        allow create: if isStaff() && request.resource.data.createdBy == request.auth.uid;
+        allow update: if isStaff() && writtenBySelf();
+        allow delete: if isStaff();
+      }
+
+      /** Imaging advised at a visit — OPG, lateral cephalogram, CBCT. */
+      match /radiographAdvice/{adviceId} {
+        allow read: if isStaff();
+        allow create: if isStaff() && request.resource.data.createdBy == request.auth.uid;
+        allow update: if isStaff() && writtenBySelf();
+        allow delete: if isStaff();
+      }
+
+      /**
+       * Metadata for uploaded radiographs. The bytes live in Cloud Storage; these records are the
+       * index. Present ahead of Storage being enabled so nothing needs changing when it is.
+       */
+      match /attachments/{attachmentId} {
+        allow read: if isStaff();
+        allow create: if isStaff() && request.resource.data.createdBy == request.auth.uid;
+        allow update: if isStaff() && writtenBySelf();
+        allow delete: if isStaff();
+      }
     }
 
     /* ---------------------------------------------------------- file numbers */
@@ -119,6 +146,19 @@ service cloud.firestore {
 
     match /counters/{counterId} {
       allow read, write: if isStaff();
+    }
+
+    /* -------------------------------------------------------------- settings */
+
+    /**
+     * Clinic-wide configuration — the consultation fee schedule.
+     *
+     * Readable by any staff member because registration needs the fee suggestion; writable by any
+     * staff member because the confirmed role model is one combined doctor/administrator role.
+     */
+    match /settings/{settingId} {
+      allow read: if isStaff();
+      allow write: if isStaff();
     }
 
     /* -------------------------------------------------------------- auditLog */

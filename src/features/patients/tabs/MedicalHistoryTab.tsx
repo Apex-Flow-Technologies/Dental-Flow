@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Badge, Card, ErrorNotice, InfoNotice } from '@/components/ui/primitives'
-import { TextAreaField } from '@/components/ui/Field'
 import { YesNoField } from '@/components/ui/YesNoField'
 import { useActor } from '@/auth/useAuth'
 import { useToast } from '@/components/ui/toastContext'
@@ -15,6 +14,8 @@ import {
   type Patient,
 } from '@/types/models'
 import { patientToForm, toPatientInput } from '../patientSchema'
+import { VitalsPanel } from './VitalsPanel'
+import { DictatedTextArea } from '@/components/ui/DictatedTextArea'
 
 interface MedicalHistoryTabProps {
   patient: Patient
@@ -109,12 +110,12 @@ export function MedicalHistoryTab({ patient, onSaved }: MedicalHistoryTabProps) 
             ))}
           </div>
 
-          <TextAreaField
+          <DictatedTextArea
             label="Previous dental history"
             rows={3}
             disabled={saving}
             value={dentalHistory}
-            onChange={(event) => setDentalHistory(event.target.value)}
+            onChange={setDentalHistory}
             hint="Treatments, extractions, dentures or appliances from before this clinic."
             placeholder="e.g. RCT on 36 elsewhere in 2023, upper partial denture, extraction of 18"
           />
@@ -186,6 +187,8 @@ export function MedicalHistoryTab({ patient, onSaved }: MedicalHistoryTabProps) 
           <p className="text-sm whitespace-pre-wrap text-ink">{dental}</p>
         )}
       </Card>
+
+      <VitalsPanel patientId={patient.id} />
     </div>
   )
 }

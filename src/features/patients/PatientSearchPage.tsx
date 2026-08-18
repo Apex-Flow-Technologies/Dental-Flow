@@ -5,7 +5,7 @@ import { Badge, Card, EmptyState, ErrorNotice, PageHeader, Spinner } from '@/com
 import { PlusIcon, SearchIcon } from '@/components/ui/icons'
 import { searchPatients } from '@/services/patients'
 import { BRANCH_LABELS, MEDICAL_FLAG_KEYS, MEDICAL_FLAG_LABELS, SEX_LABELS, type Patient } from '@/types/models'
-import { displayAge, formatAge, formatDate, formatPhone } from '@/lib/format'
+import { displayAge, formatAge, formatDate, formatPhone, initials } from '@/lib/format'
 
 /**
  * The "Old Patients" view (FR-M01-01): search by clinic file number, name, phone or alternate phone.
@@ -174,12 +174,25 @@ function PatientTable({ patients }: { patients: Patient[] }) {
                   {patient.fileNumber}
                 </td>
                 <td className="px-4 py-3">
-                  <Link
-                    to={`/patients/${patient.id}`}
-                    className="font-medium text-clinic hover:underline"
-                  >
-                    {patient.fullName}
-                  </Link>
+                  <span className="flex items-center gap-2.5">
+                    {patient.photoDataUrl ? (
+                      <img
+                        src={patient.photoDataUrl}
+                        alt=""
+                        className="size-8 shrink-0 rounded-full border border-line object-cover"
+                      />
+                    ) : (
+                      <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-pale text-[10px] font-semibold text-ink-muted">
+                        {initials(patient.fullName)}
+                      </span>
+                    )}
+                    <Link
+                      to={`/patients/${patient.id}`}
+                      className="font-medium text-clinic hover:underline"
+                    >
+                      {patient.fullName}
+                    </Link>
+                  </span>
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap text-ink-muted">
                   {formatAge(age)} · {SEX_LABELS[patient.sex]}
