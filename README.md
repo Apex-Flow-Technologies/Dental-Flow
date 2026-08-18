@@ -156,11 +156,50 @@ npm run lint
 npx tsc -p tsconfig.app.json --noEmit
 ```
 
-Deploy the built app to Firebase Hosting (optional — `firebase.json` is configured for it):
+---
+
+## Deploying
+
+The app is a static single-page bundle — anything that serves files will host it. Two things are
+true of every host and are the usual causes of a broken deploy:
+
+1. **The six `VITE_FIREBASE_*` values must be set as build-time environment variables.** Vite
+   inlines them at build time, not at run time, so setting them after a build has no effect —
+   redeploy after changing any of them.
+2. **The deployed domain must be added to Firebase Auth → Settings → Authorized domains**,
+   otherwise sign-in fails with `auth/unauthorized-domain`. `localhost` is authorised by default,
+   which is why this only bites once the app leaves your machine.
+
+### Vercel
+
+Import the GitHub repo at [vercel.com/new](https://vercel.com/new). `vercel.json` already sets the
+build command, output directory and — importantly — the SPA rewrite, without which refreshing on
+`/patients/abc123` returns a 404 because no such file exists on disk.
+
+Then, in the Vercel project:
+
+- **Settings → Environment Variables** — add all six `VITE_FIREBASE_*` keys, for Production
+  (and Preview, if you want preview deploys to work).
+- Redeploy so the build picks them up.
+- Copy the `*.vercel.app` domain into **Firebase console → Authentication → Settings → Authorized
+  domains**.
+
+### Firebase Hosting
+
+Already configured in `firebase.json`, free on the Spark plan, and the domain is authorised for
+Auth automatically — one less step than Vercel:
+
+```bash
+npm run build
+```
 
 ```bash
 firebase deploy --only hosting
 ```
+
+Environment variables come from your local `.env.local` at build time, so there is nothing to
+configure in the console.
+
 
 ---
 
