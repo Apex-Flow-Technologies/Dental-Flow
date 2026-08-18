@@ -11,6 +11,7 @@ import {
   type FeeOption,
 } from '@/services/clinicSettings'
 import { PATIENT_CATEGORIES, PATIENT_CATEGORY_LABELS } from '@/types/models'
+import { describeLoadError, describeSaveError } from '@/services/errors'
 
 /**
  * The consultation fee schedule.
@@ -35,7 +36,7 @@ export function FeeSettingsCard() {
       setSettings(await getClinicSettings())
     } catch (caught) {
       console.error('Failed to load clinic settings', caught)
-      setLoadError('Could not load the fee schedule.')
+      setLoadError(describeLoadError(caught, 'the fee schedule'))
     }
   }, [])
 
@@ -115,7 +116,7 @@ export function FeeSettingsCard() {
       notify('Fee schedule saved.')
     } catch (caught) {
       console.error('Failed to save fee schedule', caught)
-      setError('Could not save the fee schedule. Check your connection and try again.')
+      setError(describeSaveError(caught, 'the fee schedule'))
     } finally {
       setSaving(false)
     }

@@ -19,6 +19,7 @@ import {
   listToothFindings,
 } from '@/services/toothFindings'
 import { addClinicalEntry } from '@/services/clinicalEntries'
+import { describeLoadError, describeSaveError } from '@/services/errors'
 import { displayAge, formatAge, initials } from '@/lib/format'
 import { SEX_LABELS } from '@/types/models'
 import {
@@ -77,7 +78,7 @@ export function ToothChartPanel({ patient }: { patient: Patient }) {
       setFindings(await listToothFindings(patient.id))
     } catch (error) {
       console.error('Failed to load tooth findings', error)
-      setLoadError('Could not load the tooth chart.')
+      setLoadError(describeLoadError(error, 'the tooth chart'))
       setFindings([])
     }
   }, [patient.id])
@@ -133,7 +134,7 @@ export function ToothChartPanel({ patient }: { patient: Patient }) {
       await load()
     } catch (error) {
       console.error('Failed to save tooth finding', error)
-      setSaveError('Could not save. Check your connection and try again.')
+      setSaveError(describeSaveError(error, 'the finding'))
     } finally {
       setSaving(false)
     }
@@ -389,7 +390,7 @@ function AdditionalNotes({
       notify('Note added to the clinical record.')
     } catch (caught) {
       console.error('Failed to save charting note', caught)
-      setError('Could not save the note. Check your connection and try again.')
+      setError(describeSaveError(caught, 'the note'))
     } finally {
       setSaving(false)
     }

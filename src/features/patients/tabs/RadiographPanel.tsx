@@ -27,6 +27,7 @@ import {
   type RadiographType,
 } from '@/types/models'
 import { formatDate } from '@/lib/format'
+import { describeLoadError, describeSaveError } from '@/services/errors'
 
 /**
  * "Advised for OPG, lateral cephalogram, CBCT" — imaging requested at a visit.
@@ -55,7 +56,7 @@ export function RadiographPanel({ patientId }: { patientId: string }) {
       setAdvice(await listRadiographAdvice(patientId))
     } catch (caught) {
       console.error('Failed to load radiograph advice', caught)
-      setLoadError('Could not load the imaging advice.')
+      setLoadError(describeLoadError(caught, 'the imaging advice'))
       setAdvice([])
     }
   }, [patientId])
@@ -98,7 +99,7 @@ export function RadiographPanel({ patientId }: { patientId: string }) {
       await load()
     } catch (caught) {
       console.error('Failed to save radiograph advice', caught)
-      setError('Could not save. Check your connection and try again.')
+      setError(describeSaveError(caught, 'the imaging advice'))
     } finally {
       setSaving(false)
     }

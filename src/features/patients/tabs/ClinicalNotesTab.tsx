@@ -8,6 +8,7 @@ import { useToast } from '@/components/ui/toastContext'
 import { addClinicalEntry, listClinicalEntries } from '@/services/clinicalEntries'
 import { CLINICAL_ENTRY_LABELS, type ClinicalEntry } from '@/types/models'
 import { formatDateTime } from '@/lib/format'
+import { describeLoadError, describeSaveError } from '@/services/errors'
 
 /**
  * Clinical notes as dated entries attributed to the signed-in user (FR-M01-05).
@@ -37,7 +38,7 @@ export function ClinicalNotesTab({ patientId }: { patientId: string }) {
       setEntries(await listClinicalEntries(patientId))
     } catch (error) {
       console.error('Failed to load clinical entries', error)
-      setLoadError('Could not load the clinical entries.')
+      setLoadError(describeLoadError(error, 'the clinical notes'))
       setEntries([])
     }
   }, [patientId])
@@ -61,7 +62,7 @@ export function ClinicalNotesTab({ patientId }: { patientId: string }) {
       await load()
     } catch (error) {
       console.error('Failed to add clinical entry', error)
-      setSaveError('Could not save the entry. Check your connection and try again.')
+      setSaveError(describeSaveError(error, 'the note'))
     } finally {
       setSaving(false)
     }

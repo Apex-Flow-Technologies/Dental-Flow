@@ -3,6 +3,7 @@ import { Card, EmptyState, ErrorNotice, Spinner } from '@/components/ui/primitiv
 import { listPatientAudit } from '@/services/audit'
 import { AUDIT_ENTITY_LABELS, type AuditEntry } from '@/types/models'
 import { formatDateTime } from '@/lib/format'
+import { describeLoadError } from '@/services/errors'
 
 /**
  * The audit trail for one patient (FR-M01-08).
@@ -23,7 +24,7 @@ export function AuditTab({ patientId }: { patientId: string }) {
       .catch((caught) => {
         console.error('Failed to load the audit trail', caught)
         if (cancelled) return
-        setError('Could not load the audit trail.')
+        setError(describeLoadError(caught, 'the audit trail'))
         setEntries([])
       })
     return () => {

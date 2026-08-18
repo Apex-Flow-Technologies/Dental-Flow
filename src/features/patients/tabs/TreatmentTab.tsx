@@ -18,6 +18,7 @@ import {
   type TreatmentStatus,
 } from '@/types/models'
 import { formatDate } from '@/lib/format'
+import { describeLoadError, describeSaveError } from '@/services/errors'
 
 const EMPTY: TreatmentInput = { status: 'planned', procedure: '', tooth: '', notes: '' }
 
@@ -52,7 +53,7 @@ export function TreatmentTab({ patientId }: { patientId: string }) {
       setTreatments(await listTreatments(patientId))
     } catch (error) {
       console.error('Failed to load treatments', error)
-      setLoadError('Could not load the treatment table.')
+      setLoadError(describeLoadError(error, 'the treatment table'))
       setTreatments([])
     }
   }, [patientId])
@@ -77,7 +78,7 @@ export function TreatmentTab({ patientId }: { patientId: string }) {
       await load()
     } catch (error) {
       console.error('Failed to add treatment', error)
-      setSaveError('Could not save the treatment. Check your connection and try again.')
+      setSaveError(describeSaveError(error, 'the treatment'))
     } finally {
       setSaving(false)
     }

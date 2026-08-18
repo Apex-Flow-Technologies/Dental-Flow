@@ -22,6 +22,7 @@ import {
   type VitalsReading,
 } from '@/types/models'
 import { formatDate, fromDateInput, todayInput } from '@/lib/format'
+import { describeLoadError, describeSaveError } from '@/services/errors'
 
 /**
  * Blood pressure and blood sugar readings.
@@ -54,7 +55,7 @@ export function VitalsPanel({ patientId }: { patientId: string }) {
       setReadings(await listVitals(patientId))
     } catch (caught) {
       console.error('Failed to load vitals', caught)
-      setLoadError('Could not load the readings.')
+      setLoadError(describeLoadError(caught, 'the readings'))
       setReadings([])
     }
   }, [patientId])
@@ -123,7 +124,7 @@ export function VitalsPanel({ patientId }: { patientId: string }) {
       await load()
     } catch (caught) {
       console.error('Failed to save vitals', caught)
-      setError('Could not save the reading. Check your connection and try again.')
+      setError(describeSaveError(caught, 'the reading'))
     } finally {
       setSaving(false)
     }

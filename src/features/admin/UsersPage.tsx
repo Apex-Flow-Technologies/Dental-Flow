@@ -18,6 +18,7 @@ import { createClinicUser, listUsers, setUserActive } from '@/services/users'
 import type { AppUser } from '@/types/models'
 import { formatDate } from '@/lib/format'
 import { FeeSettingsCard } from './FeeSettingsCard'
+import { describeLoadError } from '@/services/errors'
 
 function describeCreateError(error: unknown): string {
   if (error instanceof FirebaseError) {
@@ -65,7 +66,7 @@ export function UsersPage() {
       setUsers(await listUsers())
     } catch (error) {
       console.error('Failed to load users', error)
-      setLoadError('Could not load the clinic users.')
+      setLoadError(describeLoadError(error, 'the clinic users'))
       setUsers([])
     }
   }, [])
