@@ -15,12 +15,14 @@ import { DemographicsTab } from './tabs/DemographicsTab'
 import { MedicalHistoryTab } from './tabs/MedicalHistoryTab'
 import { ClinicalNotesTab } from './tabs/ClinicalNotesTab'
 import { TreatmentTab } from './tabs/TreatmentTab'
+import { ToothChartPanel } from '@/features/charting/ToothChartPanel'
 import { AuditTab } from './tabs/AuditTab'
 
 const TABS = [
   { id: 'details', label: 'Details' },
   { id: 'medical', label: 'Medical history' },
   { id: 'notes', label: 'Clinical notes' },
+  { id: 'charting', label: 'Tooth chart' },
   { id: 'treatment', label: 'Treatment' },
   { id: 'audit', label: 'Audit' },
 ] as const
@@ -141,6 +143,7 @@ export function PatientDetailPage() {
       {activeTab === 'details' && <DemographicsTab patient={patient} onSaved={setPatient} />}
       {activeTab === 'medical' && <MedicalHistoryTab patient={patient} onSaved={setPatient} />}
       {activeTab === 'notes' && <ClinicalNotesTab patientId={patient.id} />}
+      {activeTab === 'charting' && <ToothChartPanel patient={patient} />}
       {activeTab === 'treatment' && <TreatmentTab patientId={patient.id} />}
       {activeTab === 'audit' && <AuditTab patientId={patient.id} />}
     </>

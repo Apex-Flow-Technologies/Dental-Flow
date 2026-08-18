@@ -229,7 +229,14 @@ export interface AuditChange {
 export const AUDIT_ACTIONS = ['create', 'update'] as const
 export type AuditAction = (typeof AUDIT_ACTIONS)[number]
 
-export const AUDIT_ENTITIES = ['patient', 'medicalHistory', 'clinicalEntry', 'treatment', 'user'] as const
+export const AUDIT_ENTITIES = [
+  'patient',
+  'medicalHistory',
+  'clinicalEntry',
+  'treatment',
+  'toothFinding',
+  'user',
+] as const
 export type AuditEntity = (typeof AUDIT_ENTITIES)[number]
 
 export const AUDIT_ENTITY_LABELS: Record<AuditEntity, string> = {
@@ -237,6 +244,7 @@ export const AUDIT_ENTITY_LABELS: Record<AuditEntity, string> = {
   medicalHistory: 'Medical history',
   clinicalEntry: 'Clinical entry',
   treatment: 'Treatment',
+  toothFinding: 'Tooth chart',
   user: 'User account',
 }
 
@@ -252,3 +260,67 @@ export interface AuditEntry {
   actorEmail: string
   at: Timestamp
 }
+
+/* ==========================================================================
+   Module 02 — Charting
+   ========================================================================== */
+
+export type Dentition = 'permanent' | 'primary'
+
+export const TOOTH_SURFACES = [
+  'mesial',
+  'distal',
+  'buccal',
+  'labial',
+  'lingual',
+  'palatal',
+  'occlusal',
+  'incisal',
+] as const
+export type ToothSurface = (typeof TOOTH_SURFACES)[number]
+
+export const TOOTH_STATUSES = [
+  'sound',
+  'caries',
+  'restored',
+  'rootCanalTreated',
+  'crown',
+  'bridge',
+  'implant',
+  'missing',
+  'extractionPlanned',
+] as const
+export type ToothStatus = (typeof TOOTH_STATUSES)[number]
+
+/** What was observed, versus what is proposed. One collection, split by this. */
+export const FINDING_CONTEXTS = ['finding', 'plan'] as const
+export type FindingContext = (typeof FINDING_CONTEXTS)[number]
+
+export const FINDING_CONTEXT_LABELS: Record<FindingContext, string> = {
+  finding: 'Findings',
+  plan: 'Treatment plan',
+}
+
+/**
+ * One charted observation or proposal on one tooth.
+ *
+ * Deliberately a data record rather than state inside a renderer: the 2D chart, the 3D patient
+ * view and any future printout are all views over this one collection. Keeping tooth state in the
+ * scene graph would cost the ability to print a chart, to run without WebGL, and to answer
+ * questions like "which patients have untreated caries on a lower molar".
+ */
+export interface ToothFinding extends Audited {
+  id: string
+  patientId: string
+  /** FDI two-digit number, stored as a string so the leading quadrant digit survives. */
+  toothNumber: string
+  dentition: Dentition
+  /** Empty when the finding applies to the whole tooth. */
+  surfaces: ToothSurface[]
+  status: ToothStatus
+  context: FindingContext
+  notes: string
+}
+
+/** The writable shape of a finding — everything except the server-managed fields. */
+export type ToothFindingInput = Omit<ToothFinding, keyof Audited | 'id' | 'patientId'>

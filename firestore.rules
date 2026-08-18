@@ -84,6 +84,20 @@ service cloud.firestore {
         allow update: if isStaff() && writtenBySelf();
         allow delete: if isStaff();
       }
+
+      /**
+       * Tooth chart findings — Module 02.
+       *
+       * Deletable, unlike the patient record: charting is iterative and a mis-clicked tooth must
+       * be correctable. The auditLog entry survives the delete, so the correction is still on
+       * record even once the finding is gone.
+       */
+      match /toothFindings/{findingId} {
+        allow read: if isStaff();
+        allow create: if isStaff() && request.resource.data.createdBy == request.auth.uid;
+        allow update: if isStaff() && writtenBySelf();
+        allow delete: if isStaff();
+      }
     }
 
     /* ---------------------------------------------------------- file numbers */
