@@ -160,34 +160,8 @@ npx tsc -p tsconfig.app.json --noEmit
 
 ## Deploying
 
-The app is a static single-page bundle — anything that serves files will host it. Two things are
-true of every host and are the usual causes of a broken deploy:
-
-1. **The six `VITE_FIREBASE_*` values must be set as build-time environment variables.** Vite
-   inlines them at build time, not at run time, so setting them after a build has no effect —
-   redeploy after changing any of them.
-2. **The deployed domain must be added to Firebase Auth → Settings → Authorized domains**,
-   otherwise sign-in fails with `auth/unauthorized-domain`. `localhost` is authorised by default,
-   which is why this only bites once the app leaves your machine.
-
-### Vercel
-
-Import the GitHub repo at [vercel.com/new](https://vercel.com/new). `vercel.json` already sets the
-build command, output directory and — importantly — the SPA rewrite, without which refreshing on
-`/patients/abc123` returns a 404 because no such file exists on disk.
-
-Then, in the Vercel project:
-
-- **Settings → Environment Variables** — add all six `VITE_FIREBASE_*` keys, for Production
-  (and Preview, if you want preview deploys to work).
-- Redeploy so the build picks them up.
-- Copy the `*.vercel.app` domain into **Firebase console → Authentication → Settings → Authorized
-  domains**.
-
-### Firebase Hosting
-
-Already configured in `firebase.json`, free on the Spark plan, and the domain is authorised for
-Auth automatically — one less step than Vercel:
+Firebase Hosting is already configured in `firebase.json`, is free on the Spark plan, and its
+domain is authorised for Firebase Auth automatically:
 
 ```bash
 npm run build
@@ -197,8 +171,9 @@ npm run build
 firebase deploy --only hosting
 ```
 
-Environment variables come from your local `.env.local` at build time, so there is nothing to
-configure in the console.
+The `VITE_FIREBASE_*` values are read from your local `.env.local` **at build time** — Vite inlines
+them into the bundle rather than reading them at run time. So build before deploying, and rebuild
+after changing any of them.
 
 
 ---
